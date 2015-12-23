@@ -51,6 +51,7 @@ class Github {
                 gitIO(data.compare, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
+                    return callback();
                 });
             },
             function (callback) {
@@ -72,7 +73,6 @@ class Github {
                 Log.error(err);
                 return next(err);
             }
-
             Async.eachSeries(data.commits, function asyncEachSeries(commit, callback) {
                 let commitMessage;
                 if (commit.message.indexOf('\n') > -1) {
@@ -80,7 +80,7 @@ class Github {
                 } else {
                     commitMessage = commit.message.substr(0, 150);
                 }
-                self.sendMessage(commitMessage, callback);
+                self.sendMessage('        --> ' + commitMessage, callback);
             }, function (eachErr) {
                 return next(eachErr);
             });
@@ -125,6 +125,7 @@ class Github {
                 gitIO(data.issue.html_url, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
+                    return callback();
                 });
             },
             function (callback) {
@@ -162,6 +163,7 @@ class Github {
                 gitIO(data.pull_request.html_url, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
+                    return callback();
                 });
             },
             function (callback) {
@@ -190,6 +192,7 @@ class Github {
                 gitIO(data.release.html_url, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
+                    return callback();
                 });
             },
             function (callback) {
