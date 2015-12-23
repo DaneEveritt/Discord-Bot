@@ -28,5 +28,5 @@ node_modules
 
 config.json
 
-logs
+logs/*
 !logs/.githold
