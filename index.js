@@ -56,6 +56,11 @@ Restify.opts(/.*/, function (req, res, next) {
     return next();
 });
 
+Restify.on('unhandledException', function (req, res, err) {
+    Log.fatal(err);
+    res.send(500, { 'error': err.message });
+});
+
 Restify.get('/', function getIndex(req, res) {
     res.send('Github --> Discord Bot Server --> Discord');
 });
