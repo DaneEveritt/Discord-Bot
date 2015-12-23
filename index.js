@@ -57,7 +57,7 @@ Restify.opts(/.*/, function (req, res, next) {
 });
 
 Restify.on('uncaughtException', function (req, res, route, err) {
-    Log.fatal({ path: route.spec.path, method: route.spec.method }, err);
+    Log.fatal({ path: route.spec.path, method: route.spec.method }, err.stack);
     return res.send(500, { 'error': err.message });
 });
 
@@ -110,6 +110,6 @@ Restify.post('/github', function restifyPostGithub(req, res) {
     });
 });
 
-Restify.listen(9080, function restifyListen() {
+Restify.listen(9080, '0.0.0.0', function restifyListen() {
     Log.info('Server now listening on :9080');
 });
