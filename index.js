@@ -56,9 +56,9 @@ Restify.opts(/.*/, function (req, res, next) {
     return next();
 });
 
-Restify.on('unhandledException', function (req, res, err) {
-    Log.fatal(err);
-    res.send(500, { 'error': err.message });
+Restify.on('uncaughtException', function (req, res, route, err) {
+    Log.fatal({ path: route.spec.path, method: route.spec.method }, err);
+    return res.send(500, { 'error': err.message });
 });
 
 Restify.get('/', function getIndex(req, res) {
