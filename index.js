@@ -66,15 +66,20 @@ Restify.get('/', function getIndex(req, res) {
 });
 
 Restify.post('/github', function restifyPostGithub(req, res) {
+    let IP;
     Async.series([
         function (next) {
-            const IP = req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress;
+            IP = req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress;
             const Addr = IPAddr.parse(IP);
 
             if (Addr.match(IPAddr.parseCIDR('192.30.252.0/22')) === true) {
                 return next();
             }
             return next(new Error('Request originated from an invalid IP CIDR range.'));
+        },
+        function (next) {
+            Log.info('Accepted request from ' + IP + ' for ' + req.headers['x-github-event']);
+            return next();
         },
         function (next) {
             switch (req.headers['x-github-event']) {
