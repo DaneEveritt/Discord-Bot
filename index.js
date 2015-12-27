@@ -35,12 +35,15 @@ Bot.on('disconnected', function botDisconnected() {
     Log.fatal('It seems the bot has disconnected from Discord...');
 
     if (Math.floor(new Date().getTime() / 1000) - LastConnect < 60) {
-        Log.fatal('Unable to reconnect bot due to throttling. Bot has disconnected twice in 60 seconds.');
-        return;
+        Log.fatal('Unable to reconnect bot due to throttling. Bot has disconnected twice in 60 seconds. Retrying again in 2 minutes.');
+        setTimeout(function () {
+            Bot.connect();
+            LastConnect = new Date();
+        }, 120000);
+    } else {
+        Bot.connect();
+        LastConnect = new Date();
     }
-
-    Bot.connect();
-    LastConnect = new Date();
 });
 
 Restify.use(RestifyServer.bodyParser());
