@@ -5,7 +5,7 @@
  * Connects Github with Discord Server and relays messages.
  */
 const Async = require('async');
-const gitIO = require('gi');
+const Git = require('node-gitio');
 const Log = require('./logger.js');
 const Util = require('util');
 const _ = require('underscore');
@@ -48,7 +48,7 @@ class Github {
         this._shortURL = undefined;
         Async.series([
             function (callback) {
-                gitIO(data.compare, function (err, result) {
+                Git.shrink({ url: data.compare }, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
                     return callback();
@@ -122,7 +122,7 @@ class Github {
 
         Async.series([
             function (callback) {
-                gitIO(data.issue.html_url, function (err, result) {
+                Git.shrink({ url: data.issue.html_url }, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
                     return callback();
@@ -160,7 +160,7 @@ class Github {
 
         Async.series([
             function (callback) {
-                gitIO(data.pull_request.html_url, function (err, result) {
+                Git.shrink({ url: data.pull_request.html_url }, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
                     return callback();
@@ -189,7 +189,7 @@ class Github {
 
         Async.series([
             function (callback) {
-                gitIO(data.release.html_url, function (err, result) {
+                Git.shrink({ url: data.release.html_url }, function (err, result) {
                     if (err) return callback(err);
                     self._shortURL = result;
                     return callback();
