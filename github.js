@@ -5,7 +5,6 @@
  * Connects Github with Discord Server and relays messages.
  */
 const Async = require('async');
-const Git = require('node-gitio');
 const Log = require('./logger.js');
 const Util = require('util');
 const _ = require('underscore');
@@ -48,13 +47,6 @@ class Github {
         this._shortURL = undefined;
         Async.series([
             function (callback) {
-                Git.shrink({ url: data.compare }, function (err, result) {
-                    if (err) return callback(err);
-                    self._shortURL = result;
-                    return callback();
-                });
-            },
-            function (callback) {
                 const message = Util.format('[%s/%s] %s pushed %s new commit(s) to %s (+%s -%s +-%s) %s',
                     data.repository.name,
                     data.ref.split('/').pop(),
@@ -64,7 +56,7 @@ class Github {
                     data.head_commit.added.length,
                     data.head_commit.removed.length,
                     data.head_commit.modified.length,
-                    self._shortURL
+                    data.compare
                 );
                 self.sendMessage(message, callback);
             },
@@ -122,20 +114,13 @@ class Github {
 
         Async.series([
             function (callback) {
-                Git.shrink({ url: data.issue.html_url }, function (err, result) {
-                    if (err) return callback(err);
-                    self._shortURL = result;
-                    return callback();
-                });
-            },
-            function (callback) {
                 const message = Util.format('[%s] %s %s Issue #%s: %s %s',
                     data.repository.name,
                     data.sender.login,
                     data.action,
                     data.issue.number,
                     data.issue.title,
-                    self._shortURL
+                    data.issue.html_url
                 );
                 self.sendMessage(message, callback);
             },
@@ -160,13 +145,6 @@ class Github {
 
         Async.series([
             function (callback) {
-                Git.shrink({ url: data.pull_request.html_url }, function (err, result) {
-                    if (err) return callback(err);
-                    self._shortURL = result;
-                    return callback();
-                });
-            },
-            function (callback) {
                 const message = Util.format('[%s/%s] %s %s Pull Request #%s: %s %s',
                     data.pull_request.base.repo.name,
                     data.pull_request.base.ref,
@@ -174,7 +152,7 @@ class Github {
                     data.action,
                     data.pull_request.number,
                     data.pull_request.title,
-                    self._shortURL
+                    data.pull_request.html_url
                 );
                 self.sendMessage(message, callback);
             },
@@ -189,19 +167,12 @@ class Github {
 
         Async.series([
             function (callback) {
-                Git.shrink({ url: data.release.html_url }, function (err, result) {
-                    if (err) return callback(err);
-                    self._shortURL = result;
-                    return callback();
-                });
-            },
-            function (callback) {
                 const message = Util.format('[%s] %s published release %s: %s %s',
                     data.repository.name,
                     data.respository.sender.login,
                     data.release.tag_name,
                     data.release.name,
-                    self._shortURL
+                    data.release.html_url
                 );
                 self.sendMessage(message, callback);
             },
