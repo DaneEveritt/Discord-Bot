@@ -85,11 +85,6 @@ Restify.post('/github', function restifyPostGithub(req, res) {
             return next();
         },
         function (next) {
-            if (!req.params.secret || req.params.secret !== Config.secret) {
-                return next(new Error('Invalid secret provided.'));
-            }
-        },
-        function (next) {
             switch (req.headers['x-github-event']) {
             case 'push':
                 Github.pushed(req.params, next);
