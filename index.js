@@ -4,46 +4,46 @@
  * Discord Bot
  * Connects Github with Discord Server and relays messages.
  */
-const Config = require('./config.json');
+const rfr = require('rfr');
+const moment = require('moment');
+const Async = require('async');
 const RestifyServer = require('restify');
 const IPAddr = require('ipaddr.js');
-const Async = require('async');
-const DiscordClient = require('discord.io');
-const GithubModule = require('./github.js');
-const Log = require('./logger.js');
+
+const Config = rfr('config.json');
+const Log = rfr('src/logger.js');
+
+const Bot = rfr('src/bot.js').Bot;
+const BotHandler = rfr('src/bot.js').BotHandler;
+const GithubHandler = rfr('src/github.js');
 
 const Restify = RestifyServer.createServer({
     name: 'Discord Bot',
 });
 
-let Bot;
+const Handler = new BotHandler();
 let Github;
-let LastConnect = new Date();
 
-Bot = new DiscordClient({
-    email: Config.email,
-    password: Config.password,
-    autorun: true,
-});
-
-Bot.on('ready', function botReady() {
-    Log.info('Bot is now ready for action (id: ' + Bot.id + ')!');
-    Github = new GithubModule(Bot, Config.channel);
-});
-
-Bot.on('disconnected', function botDisconnected() {
-    Log.fatal('It seems the bot has disconnected from Discord...');
-
-    if (Math.floor(new Date().getTime() / 1000) - LastConnect < 60) {
-        Log.fatal('Unable to reconnect bot due to throttling. Bot has disconnected twice in 60 seconds. Retrying again in 2 minutes.');
-        setTimeout(function () {
-            Bot.connect();
-            LastConnect = new Date();
-        }, 120000);
-    } else {
-        Bot.connect();
-        LastConnect = new Date();
-    }
+Async.series([
+    function (callback) {
+        // Login to BotHandler
+        Handler.login((err) => {
+            return callback(err);
+        });
+    },
+    function (callback) {
+        Github = new GithubHandler(Handler, (err) => {
+            return callback(err);
+        });
+    },
+    function (callback) {
+        Bot.setStatus('online', 'Github Messenger', (err) => {
+            return callback(err);
+        });
+    },
+], (err) => {
+    Log.fatal(err);
+    process.exit(1);
 });
 
 Restify.use(RestifyServer.bodyParser());
@@ -125,4 +125,45 @@ Restify.post('/github', function restifyPostGithub(req, res) {
 
 Restify.listen(9080, '0.0.0.0', function restifyListen() {
     Log.info('Server now listening on :9080');
+});
+
+// listeners
+Bot.on('ready', () => {
+    Log.info('Discord bot is ready for action!');
+    Handler.findChannel((err) => {
+        if (err) {
+            Log.fatal(err);
+            process.exit(1);
+        }
+    });
+});
+
+Bot.on('message', (msg) => {
+    if (typeof msg.author.id !== 'string' || Config.admins.indexOf(msg.author.id) < 0) {
+        return false;
+    }
+    if (msg.content === '!ping') Handler.reply(msg, 'pong');
+});
+
+Bot.on('disconnected', () => {
+    if (moment.isMoment(Handler.lastDisconnect())) {
+        if (moment(Handler.lastDisconnect()).add(60, 'seconds').isAfter(moment())) {
+            setTimeout(() => {
+                Handler.login((err) => {
+                    if (err) {
+                        Log.fatal(err);
+                        process.exit(1);
+                    }
+                });
+            }, 120000);
+        } else {
+            Handler.login((err) => {
+                if (err) {
+                    Log.fatal(err);
+                    process.exit(1);
+                }
+            });
+        }
+    }
+    Handler.lastDisconnect(moment());
 });

@@ -7,46 +7,31 @@
 const Async = require('async');
 const Log = require('./logger.js');
 const Util = require('util');
-const _ = require('underscore');
+const Gitio = require('node-gitio');
 
 class Github {
-    constructor(bot, channel) {
+    constructor(bot, next) {
+        if (!bot || typeof bot !== 'object') {
+            if (typeof next === 'function') return next(new Error('Instance of `bot` passed to Github must be a DiscordBot instance.'));
+        }
         this.bot = bot;
-        this.channel = channel;
-        this.channelID = this.findChannelID();
-    }
-
-    findChannelID() {
-        this._response = undefined;
-        const self = this;
-        Log.info('Looking for the channel ID across all active connections...');
-        _.each(this.bot.servers, function (element) {
-            _.each(element.channels, function (channel, index) {
-                if (channel.name === self.channel) {
-                    Log.info({ channel: index }, 'Found the channel!');
-                    self._response = index;
-                }
-            });
-        });
-        return this._response;
-    }
-
-    sendMessage(msg, next) {
-        this.bot.sendMessage({
-            to: this.channelID,
-            message: msg,
-            tts: false,
-            typing: true,
-        }, function (resp) {
-            return next(null, resp);
-        });
     }
 
     pushed(data, next) {
         const self = this;
         this._shortURL = undefined;
-        Async.series([
+        Async.waterfall([
             function (callback) {
+                Gitio.shrink({
+                    url: data.compare,
+                }, (err, result) => {
+                    if (err) {
+                        return callback(null, data.compare);
+                    }
+                    return callback(null, result);
+                });
+            },
+            function (url, callback) {
                 const message = Util.format('[%s/%s] %s pushed %s new commit(s) to %s (+%s -%s +-%s) %s',
                     data.repository.name,
                     data.ref.split('/').pop(),
@@ -56,9 +41,9 @@ class Github {
                     data.head_commit.added.length,
                     data.head_commit.removed.length,
                     data.head_commit.modified.length,
-                    data.compare
+                    url
                 );
-                self.sendMessage(message, callback);
+                self.bot.send(message, callback);
             },
         ], function (err) {
             if (err) {
@@ -72,7 +57,7 @@ class Github {
                 } else {
                     commitMessage = commit.message.substr(0, 150);
                 }
-                self.sendMessage('        --> ' + commitMessage, callback);
+                self.bot.send('        --> ' + commitMessage, callback);
             }, function (eachErr) {
                 return next(eachErr);
             });
@@ -86,7 +71,7 @@ class Github {
             data.ref_type,
             data.ref
         );
-        self.sendMessage(message, next);
+        this.bot.send(message, next);
     }
 
     delete(data, next) {
@@ -96,7 +81,7 @@ class Github {
             data.ref_type,
             data.ref
         );
-        self.sendMessage(message, next);
+        this.bot.send(message, next);
     }
 
     issue(data, next) {
@@ -112,17 +97,27 @@ class Github {
         // Don't want to spam it up when things happen.
         if (IgnoredIssues.indexOf(data.action) > -1) return next();
 
-        Async.series([
+        Async.waterfall([
             function (callback) {
+                Gitio.shrink({
+                    url: data.issue.html_url,
+                }, (err, result) => {
+                    if (err) {
+                        return callback(null, data.compare);
+                    }
+                    return callback(null, result);
+                });
+            },
+            function (url, callback) {
                 const message = Util.format('[%s] %s %s Issue #%s: %s %s',
                     data.repository.name,
                     data.sender.login,
                     data.action,
                     data.issue.number,
                     data.issue.title,
-                    data.issue.html_url
+                    url
                 );
-                self.sendMessage(message, callback);
+                self.bot.send(message, callback);
             },
         ], function (err) {
             return next(err);
@@ -143,8 +138,18 @@ class Github {
         // Don't want to spam it up when things happen.
         if (IgnoredPR.indexOf(data.action) > -1) return next();
 
-        Async.series([
+        Async.waterfall([
             function (callback) {
+                Gitio.shrink({
+                    url: data.pull_request.html_url,
+                }, (err, result) => {
+                    if (err) {
+                        return callback(null, data.compare);
+                    }
+                    return callback(null, result);
+                });
+            },
+            function (url, callback) {
                 const message = Util.format('[%s/%s] %s %s Pull Request #%s: %s %s',
                     data.pull_request.base.repo.name,
                     data.pull_request.base.ref,
@@ -152,9 +157,9 @@ class Github {
                     data.action,
                     data.pull_request.number,
                     data.pull_request.title,
-                    data.pull_request.html_url
+                    url
                 );
-                self.sendMessage(message, callback);
+                self.bot.send(message, callback);
             },
         ], function (err) {
             return next(err);
@@ -165,16 +170,26 @@ class Github {
         const self = this;
         this._shortURL = undefined;
 
-        Async.series([
+        Async.waterfall([
             function (callback) {
+                Gitio.shrink({
+                    url: data.pull_request.html_url,
+                }, (err, result) => {
+                    if (err) {
+                        return callback(null, data.compare);
+                    }
+                    return callback(null, result);
+                });
+            },
+            function (url, callback) {
                 const message = Util.format('[%s] %s published release %s: %s %s',
                     data.repository.name,
                     data.respository.sender.login,
                     data.release.tag_name,
                     data.release.name,
-                    data.release.html_url
+                    url
                 );
-                self.sendMessage(message, callback);
+                self.bot.send(message, callback);
             },
         ], function (err) {
             return next(err);
