@@ -36,11 +36,11 @@ Async.series([
             return callback(err);
         });
     },
-    function (callback) {
-        Bot.setStatus('online', 'Github Messenger', (err) => {
-            return callback(err);
-        });
-    },
+    // function (callback) {
+    //     Bot.setStatus('online', 'Github Messenger', (err) => {
+    //         return callback(err);
+    //     });
+    // },
     function (callback) {
         Restify.post('/github', function restifyPostGithub(req, res) {
             let IP;
@@ -140,7 +140,7 @@ Bot.on('message', (msg) => {
     if (typeof msg.author.id !== 'string' || Config.admins.indexOf(msg.author.id) < 0) {
         return false;
     }
-    if (msg.content === '!ping') Handler.reply(msg, 'pong');
+    if (msg.content === '!ping') Handler.replyMsg(msg, 'pong');
 });
 
 Bot.on('disconnected', () => {

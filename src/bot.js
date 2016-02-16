@@ -21,15 +21,15 @@ class DiscordBot {
 
     login(next) {
         Bot.login(Config.email, Config.password, (err) => {
-            if (err) {
-                Log.fatal(err);
-                process.exit(1);
-            } else {
-                // Follow the invite:
-                Log.info('Attempting to follow invite and join server.');
+            if (err) return next(err);
+            // Follow the invite:
+            Log.info('Attempting to follow invite and join server.');
+            if (typeof Config.invite === 'string') {
                 Bot.joinServer(Config.invite, (joinErr) => {
-                    if (err && typeof next === 'function') return next(joinErr);
+                    if (typeof next === 'function') return next(joinErr);
                 });
+            } else {
+                return next();
             }
         });
     }
@@ -51,7 +51,7 @@ class DiscordBot {
         });
     }
 
-    send(message, next) {
+    sendMsg(message, next) {
         const self = this;
         Async.series([
             function (callback) {
@@ -68,7 +68,7 @@ class DiscordBot {
         });
     }
 
-    reply(message, reply, next) {
+    replyMsg(message, reply, next) {
         const self = this;
         Async.series([
             function (callback) {

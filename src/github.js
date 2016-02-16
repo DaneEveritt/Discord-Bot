@@ -13,13 +13,15 @@ class Github {
     constructor(bot, next) {
         if (!bot || typeof bot !== 'object') {
             if (typeof next === 'function') return next(new Error('Instance of `bot` passed to Github must be a DiscordBot instance.'));
+        } else {
+            this.bot = bot;
+            return next();
         }
-        this.bot = bot;
     }
 
     pushed(data, next) {
         const self = this;
-        this._shortURL = undefined;
+
         Async.waterfall([
             function (callback) {
                 Gitio.shrink({
@@ -43,7 +45,7 @@ class Github {
                     data.head_commit.modified.length,
                     url
                 );
-                self.bot.send(message, callback);
+                self.bot.sendMsg(message, callback);
             },
         ], function (err) {
             if (err) {
@@ -57,7 +59,7 @@ class Github {
                 } else {
                     commitMessage = commit.message.substr(0, 150);
                 }
-                self.bot.send('        --> ' + commitMessage, callback);
+                self.bot.sendMsg('        --> ' + commitMessage, callback);
             }, function (eachErr) {
                 return next(eachErr);
             });
@@ -71,7 +73,7 @@ class Github {
             data.ref_type,
             data.ref
         );
-        this.bot.send(message, next);
+        this.bot.sendMsg(message, next);
     }
 
     delete(data, next) {
@@ -81,12 +83,12 @@ class Github {
             data.ref_type,
             data.ref
         );
-        this.bot.send(message, next);
+        this.bot.sendMsg(message, next);
     }
 
     issue(data, next) {
         const self = this;
-        this._shortURL = undefined;
+
         const IgnoredIssues = [
             'assigned',
             'unassigned',
@@ -117,7 +119,7 @@ class Github {
                     data.issue.title,
                     url
                 );
-                self.bot.send(message, callback);
+                self.bot.sendMsg(message, callback);
             },
         ], function (err) {
             return next(err);
@@ -126,7 +128,7 @@ class Github {
 
     pull(data, next) {
         const self = this;
-        this._shortURL = undefined;
+
         const IgnoredPR = [
             'assigned',
             'unassigned',
@@ -159,7 +161,7 @@ class Github {
                     data.pull_request.title,
                     url
                 );
-                self.bot.send(message, callback);
+                self.bot.sendMsg(message, callback);
             },
         ], function (err) {
             return next(err);
@@ -168,7 +170,7 @@ class Github {
 
     release(data, next) {
         const self = this;
-        this._shortURL = undefined;
+
 
         Async.waterfall([
             function (callback) {
@@ -189,7 +191,7 @@ class Github {
                     data.release.name,
                     url
                 );
-                self.bot.send(message, callback);
+                self.bot.sendMsg(message, callback);
             },
         ], function (err) {
             return next(err);
