@@ -41,9 +41,66 @@ Async.series([
             return callback(err);
         });
     },
+    function (callback) {
+        Restify.post('/github', function restifyPostGithub(req, res) {
+            let IP;
+            Async.series([
+                function (next) {
+                    IP = req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress;
+                    const Addr = IPAddr.parse(IP);
+
+                    if (Addr.match(IPAddr.parseCIDR('192.30.252.0/22')) === true) {
+                        return next();
+                    }
+                    return next(new Error('Request originated from an invalid IP CIDR range.'));
+                },
+                function (next) {
+                    Log.info('Accepted request from ' + IP + ' for ' + req.headers['x-github-event']);
+                    return next();
+                },
+                function (next) {
+                    switch (req.headers['x-github-event']) {
+                    case 'push':
+                        Github.pushed(req.params, next);
+                        break;
+                    case 'create':
+                        Github.create(req.params, next);
+                        break;
+                    case 'delete':
+                        Github.delete(req.params, next);
+                        break;
+                    case 'issues':
+                        Github.issue(req.params, next);
+                        break;
+                    case 'pull_request':
+                        Github.pull(req.params, next);
+                        break;
+                    case 'release':
+                        Github.release(req.params, next);
+                        break;
+                    default:
+                        next();
+                        break;
+                    }
+                },
+            ], function (err) {
+                if (err) {
+                    Log.error(err);
+                    return res.send(503, { 'error': err.message });
+                }
+                return res.send(204);
+            });
+        });
+        return callback();
+    },
 ], (err) => {
-    Log.fatal(err);
-    process.exit(1);
+    if (err) {
+        Log.fatal(err);
+        process.exit(1);
+    }
+    Restify.listen(9080, '0.0.0.0', function restifyListen() {
+        Log.info('Server now listening on :9080');
+    });
 });
 
 Restify.use(RestifyServer.bodyParser());
@@ -66,60 +123,6 @@ Restify.on('uncaughtException', function (req, res, route, err) {
 
 Restify.get('/', function getIndex(req, res) {
     res.send('Github --> Discord Bot Server --> Discord');
-});
-
-Restify.post('/github', function restifyPostGithub(req, res) {
-    let IP;
-    Async.series([
-        function (next) {
-            IP = req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress;
-            const Addr = IPAddr.parse(IP);
-
-            if (Addr.match(IPAddr.parseCIDR('192.30.252.0/22')) === true) {
-                return next();
-            }
-            return next(new Error('Request originated from an invalid IP CIDR range.'));
-        },
-        function (next) {
-            Log.info('Accepted request from ' + IP + ' for ' + req.headers['x-github-event']);
-            return next();
-        },
-        function (next) {
-            switch (req.headers['x-github-event']) {
-            case 'push':
-                Github.pushed(req.params, next);
-                break;
-            case 'create':
-                Github.create(req.params, next);
-                break;
-            case 'delete':
-                Github.delete(req.params, next);
-                break;
-            case 'issues':
-                Github.issue(req.params, next);
-                break;
-            case 'pull_request':
-                Github.pull(req.params, next);
-                break;
-            case 'release':
-                Github.release(req.params, next);
-                break;
-            default:
-                next();
-                break;
-            }
-        },
-    ], function (err) {
-        if (err) {
-            Log.error(err);
-            return res.send(503, { 'error': err.message });
-        }
-        return res.send(204);
-    });
-});
-
-Restify.listen(9080, '0.0.0.0', function restifyListen() {
-    Log.info('Server now listening on :9080');
 });
 
 // listeners
